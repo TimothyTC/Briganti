@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Briganti Nomogram Calculator</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+      --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem;
+      --color-bg: #f7f6f2; --color-surface: #fbfbf9; --color-surface-2: #f3f0ec; --color-border: #d4d1ca; --color-text: #28251d; --color-text-muted: #6f6b63; --color-primary: #01696f; --color-primary-hover:#0c4e54; --color-success:#437a22; --color-error:#a13544; --color-success-bg:#dce9d4; --color-error-bg:#f1d5d9; --radius-md: 0.75rem; --radius-lg: 1rem; --shadow-md: 0 8px 24px rgba(0,0,0,.08);
+      --font-body: 'Satoshi', Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-body); background: linear-gradient(180deg, #f7f6f2 0%, #ece8e0 100%); color: var(--color-text); min-height: 100vh; line-height: 1.5; }
+    .app { max-width: 980px; margin: 0 auto; padding: var(--space-8) var(--space-4) var(--space-12); }
+    .card { background: rgba(251,251,249,.96); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: var(--space-6); }
+    .header { margin-bottom: var(--space-6); }
+    .eyebrow { color: var(--color-primary); font-size: var(--text-sm); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: var(--space-2); }
+    h1 { font-size: var(--text-xl); margin-bottom: var(--space-2); }
+    p { color: var(--color-text-muted); font-size: var(--text-base); }
+    .step { display: none; }
+    .step.active { display: block; }
+    .grid { display: grid; gap: var(--space-4); }
+    .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .field { display: grid; gap: var(--space-2); }
+    label { font-weight: 700; font-size: var(--text-sm); }
+    .remark { font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.45; margin-top: calc(var(--space-2) * -0.4); }
+    input, select { width: 100%; padding: .9rem 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: white; font-size: var(--text-base); }
+    .actions { display: flex; gap: var(--space-3); margin-top: var(--space-6); flex-wrap: wrap; }
+    button { border: none; border-radius: 999px; padding: .95rem 1.25rem; font-weight: 700; font-size: var(--text-sm); cursor: pointer; }
+    .btn-primary { background: var(--color-primary); color: white; }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-secondary { background: transparent; border: 1px solid var(--color-border); color: var(--color-text); }
+    .panel { background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-5); margin-top: var(--space-5); }
+    .formula { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--text-sm); word-break: break-word; color: var(--color-text); }
+    .hidden { display:none; }
+    .result { margin-top: var(--space-6); padding: var(--space-6); border-radius: var(--radius-lg); border: 2px solid transparent; }
+    .result.good { background: var(--color-success-bg); border-color: var(--color-success); }
+    .result.bad { background: var(--color-error-bg); border-color: var(--color-error); }
+    .risk { font-size: clamp(2rem, 1.5rem + 2vw, 3.5rem); font-weight: 700; margin: var(--space-2) 0; }
+    .pill { display:inline-block; padding:.35rem .7rem; border-radius:999px; font-size:var(--text-xs); font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+    .pill.good { background: var(--color-success-bg); color: var(--color-success); }
+    .pill.bad { background: var(--color-error-bg); color: var(--color-error); }
+    .small { font-size: var(--text-sm); }
+    .tableish { display:grid; gap: .6rem; margin-top: var(--space-4); }
+    .row { display:grid; grid-template-columns: 1.3fr 1fr; gap: var(--space-3); padding-bottom: .5rem; border-bottom: 1px solid rgba(40,37,29,.08); }
+    @media (max-width: 720px) {
+      .grid.two, .row { grid-template-columns: 1fr; }
+      .app { padding: var(--space-5); }
+      .card { padding: var(--space-5); }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="header">
+      <div class="eyebrow">Nomogram web app</div>
+      <h1>Briganti LN involvement calculator</h1>
+      <p>Select the imaging pathway first. The app then loads the matching Briganti nomogram, shows the logistic formula, and calculates the estimated lymph node involvement risk.</p>
+    </section>
+
+    <section class="card">
+      <div id="step-1" class="step active">
+        <h2>Step 1 · Imaging pathway</h2>
+        <div class="grid two" style="margin-top:1rem;">
+          <div class="field">
+            <label for="mriDone">MRI done?</label>
+            <select id="mriDone">
+              <option value="no">No</option>
+              <option value="yes">Yes and targeted biopsy positive</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="psmaDone">PSMA PET CT done?</label>
+            <select id="psmaDone">
+              <option value="no">No</option>
+              <option value="yes">Yes, but PSMA negative</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel small">
+          Logic used: imaging-naive = Briganti 2017; MRI pathway = Briganti 2019; PSMA PET CT pathway = Briganti 2023. If PSMA PET CT is selected as negative, it takes priority over MRI.
+        </div>
+        <div class="actions">
+          <button class="btn-primary" id="toStep2">Continue</button>
+        </div>
+      </div>
+
+      <div id="step-2" class="step">
+        <h2 id="nomogramTitle">Step 2 · Selected nomogram</h2>
+        <div class="panel">
+          <div class="small"><strong>Nomogram selected</strong></div>
+          <p id="nomogramDescription" style="margin-top:.35rem;"></p>
+          <div class="tableish">
+            <div class="row"><div><strong>Linear predictor</strong></div><div id="formulaLine" class="formula"></div></div>
+            <div class="row"><div><strong>Probability formula</strong></div><div class="formula">Risk = 1 / (1 + exp(-LP))</div></div>
+          </div>
+        </div>
+
+        <form id="nomogramForm" class="grid two" style="margin-top:1.25rem;"></form>
+
+        <div class="actions">
+          <button type="button" class="btn-secondary" id="backTo1">Back</button>
+          <button type="button" class="btn-primary" id="calculateBtn">Calculate risk</button>
+        </div>
+
+        <div id="resultBox" class="result hidden">
+          <div class="small">Estimated lymph node involvement risk</div>
+          <div class="risk" id="riskValue">0.0%</div>
+          <div id="riskFlag" class="pill good">Below 7%</div>
+          <p id="lpValue" class="small" style="margin-top:.75rem;"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const nomograms = {
+      '2017': {
+        title: 'Briganti 2017 nomogram',
+        description: 'Used for imaging-naive patients.',
+        intercept: -5.8717,
+        formula: 'LP = -5.8717 + 0.0826×PSA + Tstage + BiopsyGG + 0.0268×%positive highest-grade cores + 0.0140×%positive lower-grade cores',
+        fields: [
+          { id:'psa', label:'Preoperative PSA', type:'number', step:'0.1' },
+          { id:'tstage', label:'Clinical stage', type:'select', options:[['0','T1'],['0.8489','T2'],['1.055','T3']] },
+          { id:'gg', label:'Biopsy Gleason grade group', type:'select', options:[['0','1'],['0','2'],['2.2664','3'],['2.6753','4'],['2.6753','5']] },
+          { id:'highGradeCores', label:'% positive cores with highest-grade PCa', remark:'Percentage of cores in the biopsy with the highest-grade disease.', type:'number', step:'0.1' },
+          { id:'lowerGradeCores', label:'% positive cores with lower-grade PCa', remark:'Percentage of cores in the biopsy with the lower-grade disease.', type:'number', step:'0.1' }
+        ],
+        calculate(values) {
+          return this.intercept + 0.0826*values.psa + Number(values.tstage) + Number(values.gg) + 0.0268*values.highGradeCores + 0.0140*values.lowerGradeCores;
+        }
+      },
+      '2019': {
+        title: 'Briganti 2019 nomogram',
+        description: 'Used for MRI fusion biopsy pathway.',
+        intercept: -4.5974,
+        formula: 'LP = -4.5974 + 0.0416×PSA + mpMRI stage + 0.0311×maximum lesion diameter + targeted-biopsy GG + 0.0119×% positive cores with clinically significant PCa at systematic biopsy',
+        fields: [
+          { id:'psa', label:'Preoperative PSA', type:'number', step:'0.1' },
+          { id:'mriStage', label:'Clinical stage at mpMRI', type:'select', options:[['0','Organ confined'],['1.2214','Extracapsular extension'],['1.4672','Seminal vesicle invasion']] },
+          { id:'lesionDiameter', label:'Maximum lesion diameter at mpMRI (mm)', remark:'The lesion with the highest PI-RADS score or the one with the largest diameter for lesions with the same PI-RADS score.', type:'number', step:'0.1' },
+          { id:'targetedGG', label:'Biopsy Gleason grade group at MRI-targeted biopsy', type:'select', options:[['0','1'],['0','2'],['1.2032','3'],['1.8063','4'],['1.8063','5']] },
+          { id:'systematicCs', label:'% positive cores with clinically significant PCa at systematic biopsy', remark:'Percentage of cores with clinically significant PCa, defined as grade group ≥2.', type:'number', step:'0.1' }
+        ],
+        calculate(values) {
+          return this.intercept + 0.0416*values.psa + Number(values.mriStage) + 0.0311*values.lesionDiameter + Number(values.targetedGG) + 0.0119*values.systematicCs;
+        }
+      },
+      '2023': {
+        title: 'Briganti 2023 nomogram',
+        description: 'Used for patients who had PSMA PET CT.',
+        intercept: -4.807,
+        formula: 'LP = -4.807 + 0.0085×PSA + PSMA/mpMRI stage + 0.0489×maximum lesion diameter + biopsy grade + 0.0160×% positive cores with clinically significant PCa at systematic biopsy',
+        fields: [
+          { id:'psa', label:'Preoperative PSA', type:'number', step:'0.1' },
+          { id:'psmaStage', label:'Clinical stage at mpMRI', remark:'Clinical stage at multiparametric Magnetic Resonance Imaging.', type:'select', options:[['0','Organ confined'],['0.7288','Extracapsular extension'],['1.3835','Seminal vesicle invasion']] },
+          { id:'lesionDiameter', label:'Maximum lesion diameter at mpMRI (mm)', remark:'The lesion with the highest PI-RADS score or the one with the largest diameter for lesions with the same PI-RADS score.', type:'number', step:'0.1' },
+          { id:'biopsyGrade', label:'Biopsy Gleason grade', type:'select', options:[['0','1'],['0','2'],['0','3'],['0','4'],['0.8757','5']] },
+          { id:'systematicCs', label:'% positive cores with clinically significant PCa at systematic biopsy', remark:'Percentage of cores with clinically significant PCa, defined as grade group ≥2.', type:'number', step:'0.1' }
+        ],
+        calculate(values) {
+          return this.intercept + 0.0085*values.psa + Number(values.psmaStage) + 0.0489*values.lesionDiameter + Number(values.biopsyGrade) + 0.0160*values.systematicCs;
+        }
+      }
+    };
+
+    const step1 = document.getElementById('step-1');
+    const step2 = document.getElementById('step-2');
+    const form = document.getElementById('nomogramForm');
+    const resultBox = document.getElementById('resultBox');
+    let currentNomogram = '2017';
+
+    function chooseNomogram() {
+      const mri = document.getElementById('mriDone').value;
+      const psma = document.getElementById('psmaDone').value;
+      if (psma === 'yes') return '2023';
+      if (mri === 'yes') return '2019';
+      return '2017';
+    }
+
+    function renderForm(key) {
+      const cfg = nomograms[key];
+      document.getElementById('nomogramTitle').textContent = `Step 2 · ${cfg.title}`;
+      document.getElementById('nomogramDescription').textContent = cfg.description;
+      document.getElementById('formulaLine').textContent = cfg.formula;
+      form.innerHTML = '';
+      cfg.fields.forEach(field => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'field';
+        const label = document.createElement('label');
+        label.setAttribute('for', field.id);
+        label.textContent = field.label;
+        wrapper.appendChild(label);
+        if (field.remark) {
+          const remark = document.createElement('div');
+          remark.className = 'remark';
+          remark.textContent = field.remark;
+          wrapper.appendChild(remark);
+        }
+        let input;
+        if (field.type === 'select') {
+          input = document.createElement('select');
+          field.options.forEach(([value, text]) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = text;
+            input.appendChild(option);
+          });
+        } else {
+          input = document.createElement('input');
+          input.type = 'number';
+          input.step = field.step || 'any';
+          input.min = '0';
+          input.placeholder = 'Enter value';
+        }
+        input.id = field.id;
+        input.name = field.id;
+        input.required = true;
+        wrapper.appendChild(input);
+        form.appendChild(wrapper);
+      });
+      resultBox.classList.add('hidden');
+    }
+
+    function collectValues(key) {
+      const values = {};
+      for (const field of nomograms[key].fields) {
+        const el = document.getElementById(field.id);
+        const raw = el.value;
+        if (field.type === 'number' && raw === '') {
+          el.focus();
+          throw new Error(`Please enter ${field.label}.`);
+        }
+        values[field.id] = field.type === 'number' ? Number(raw) : raw;
+      }
+      return values;
+    }
+
+    function probability(lp) {
+      return 1 / (1 + Math.exp(-lp));
+    }
+
+    document.getElementById('toStep2').addEventListener('click', () => {
+      currentNomogram = chooseNomogram();
+      renderForm(currentNomogram);
+      step1.classList.remove('active');
+      step2.classList.add('active');
+    });
+
+    document.getElementById('backTo1').addEventListener('click', () => {
+      step2.classList.remove('active');
+      step1.classList.add('active');
+      resultBox.classList.add('hidden');
+    });
+
+    document.getElementById('calculateBtn').addEventListener('click', () => {
+      try {
+        const values = collectValues(currentNomogram);
+        const lp = nomograms[currentNomogram].calculate(values);
+        const riskPct = probability(lp) * 100;
+        const cutoff = currentNomogram === '2023' ? 5 : 7;
+        const highRisk = riskPct >= cutoff;
+        document.getElementById('riskValue').textContent = `${riskPct.toFixed(1)}%`;
+        document.getElementById('lpValue').textContent = `Linear predictor: ${lp.toFixed(4)} · Cutoff: ${cutoff}%`; 
+        const flag = document.getElementById('riskFlag');
+        flag.textContent = highRisk ? `${cutoff}% or above` : `Below ${cutoff}%`;
+        flag.className = `pill ${highRisk ? 'bad' : 'good'}`;
+        resultBox.className = `result ${highRisk ? 'bad' : 'good'}`;
+      } catch (err) {
+        alert(err.message);
+        return;
+      }
+    });
+  </script>
+</body>
+</html>
