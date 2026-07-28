@@ -50,6 +50,10 @@
     .small { font-size: var(--text-sm); }
     .tableish { display:grid; gap: .6rem; margin-top: var(--space-4); }
     .row { display:grid; grid-template-columns: 1.3fr 1fr; gap: var(--space-3); padding-bottom: .5rem; border-bottom: 1px solid rgba(40,37,29,.08); }
+
+    .barcode-panel { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid rgba(40,37,29,.08); }
+    .barcode-wrap { display:flex; gap: var(--space-5); align-items:center; flex-wrap:wrap; margin-top: var(--space-3); }
+    #qrcode { background:white; padding:.75rem; border-radius: var(--radius-md); border:1px solid var(--color-border); min-width: 204px; min-height: 204px; display:flex; align-items:center; justify-content:center; }
     @media (max-width: 720px) {
       .grid.two, .row { grid-template-columns: 1fr; }
       .app { padding: var(--space-5); }
@@ -115,11 +119,22 @@
           <div class="risk" id="riskValue">0.0%</div>
           <div id="riskFlag" class="pill good">Below 7%</div>
           <p id="lpValue" class="small" style="margin-top:.75rem;"></p>
+
+          <div class="barcode-panel">
+            <div class="small"><strong>2D barcode</strong></div>
+            <div class="barcode-wrap">
+              <div>
+                <p id="barcodeText" class="small" style="max-width:52ch; margin-top:.35rem;"></p>
+              </div>
+              <div id="qrcode" aria-label="QR code output"></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     const nomograms = {
       '2017': {
@@ -177,6 +192,24 @@
     const form = document.getElementById('nomogramForm');
     const resultBox = document.getElementById('resultBox');
     let currentNomogram = '2017';
+    let qrCodeInstance = null;
+
+    function buildBarcodeMessage(nomogramKey, riskPct) {
+      const modelName = nomograms[nomogramKey].title;
+      return `The estimated LN involvement risk is ${riskPct.toFixed(1)}%, based on ${modelName}.`;
+    }
+
+    function renderQrCode(text) {
+      const qrContainer = document.getElementById('qrcode');
+      qrContainer.innerHTML = '';
+      qrCodeInstance = new QRCode(qrContainer, {
+        text,
+        width: 180,
+        height: 180,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      document.getElementById('barcodeText').textContent = text;
+    }
 
     function chooseNomogram() {
       const mri = document.getElementById('mriDone').value;
@@ -259,6 +292,8 @@
       step2.classList.remove('active');
       step1.classList.add('active');
       resultBox.classList.add('hidden');
+      document.getElementById('qrcode').innerHTML = '';
+      document.getElementById('barcodeText').textContent = '';
     });
 
     document.getElementById('calculateBtn').addEventListener('click', () => {
@@ -269,6 +304,8 @@
         const cutoff = currentNomogram === '2023' ? 5 : 7;
         const highRisk = riskPct >= cutoff;
         document.getElementById('riskValue').textContent = `${riskPct.toFixed(1)}%`;
+        const barcodeMessage = buildBarcodeMessage(currentNomogram, riskPct);
+        renderQrCode(barcodeMessage);
         document.getElementById('lpValue').textContent = `Linear predictor: ${lp.toFixed(4)} · Cutoff: ${cutoff}%`; 
         const flag = document.getElementById('riskFlag');
         flag.textContent = highRisk ? `${cutoff}% or above` : `Below ${cutoff}%`;
